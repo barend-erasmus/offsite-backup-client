@@ -9,8 +9,8 @@ namespace OffsiteBackupClient.Tests
     [TestClass]
     public class ClientTests
     {
-        [TestMethod]
-        public void TestMethod1()
+        [TestMethod, TestCategory("Unit")]
+        public void UploadStream()
         {
             Mock<IGateway> mockGateway = new Mock<IGateway>();
 
@@ -26,6 +26,19 @@ namespace OffsiteBackupClient.Tests
             client.UploadStream(stream, content.Length, "hello_world.txt");
 
             mockGateway.Verify((x) => x.Upload(It.IsAny<string>(), It.IsAny<long>(), It.IsAny<byte[]>()), Times.Exactly(4));
+        }
+
+        [TestMethod, TestCategory("Unit")]
+        public void ToRelativePath()
+        {
+
+            int bufferSize = 240;
+
+            Client client = new Client(null, bufferSize);
+
+            string path = client.ToRelativePath(@"C:\Program Files (x86)\Google\Drive", @"C:\Program Files (x86)");
+
+            Assert.AreEqual(path, @"Google\Drive");
         }
 
     }

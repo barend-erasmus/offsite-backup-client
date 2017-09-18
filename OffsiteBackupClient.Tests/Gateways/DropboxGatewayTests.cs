@@ -28,5 +28,14 @@ namespace OffsiteBackupClient.Tests.Gateways
 
             Assert.IsNotNull(sessionId);
         }
+
+        [TestMethod, TestCategory("Integration")]
+        public void Test()
+        {
+            IGateway gateway = new DropboxGateway("FZCdx-RSopAAAAAAAAABEW0D_UpucNysSeKCgSjZwXS-wIQiNByl-U-qjYRBkTeL");
+            Client client = new Client(gateway, 1024);
+
+            client.UploadDirectory(@"C:\Temp\Fiddler2", null);
+        }
     }
 }

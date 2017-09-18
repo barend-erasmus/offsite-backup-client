@@ -98,7 +98,7 @@ namespace OffsiteBackupClient.Gateways
                 },
                 commit = new
                 {
-                    path = $"/{filename}",
+                    path = $"/{ToLinuxPath(filename)}",
                     mode = "add",
                     autorename = true,
                     mute = false
@@ -137,6 +137,11 @@ namespace OffsiteBackupClient.Gateways
             }
 
             return response.Data["session_id"];
+        }
+
+        internal string ToLinuxPath(string path)
+        {
+            return path.Replace(@"\", "/");
         }
     }
 }

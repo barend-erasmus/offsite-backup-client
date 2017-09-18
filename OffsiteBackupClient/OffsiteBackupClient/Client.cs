@@ -16,58 +16,76 @@ namespace OffsiteBackupClient
             _bufferSize = bufferSize;
         }
 
-        public void UploadDirectory(string path)
+        public void UploadDirectory(string path, string basePath)
         {
+            if (string.IsNullOrWhiteSpace(basePath))
+            {
+                basePath = path;
+            }
+
             foreach (string file in Directory.GetFiles(path))
             {
-                UploadFile(file);
+                UploadFile(file, basePath);
             }
 
             foreach (string directory in Directory.GetDirectories(path))
             {
-                foreach (string file in Directory.GetFiles(directory))
-                {
-                    UploadFile(file);
-                }
-
-                UploadDirectory(directory);
+                UploadDirectory(directory, basePath);
             }
         }
 
-        internal void UploadFile(string path)
+        internal void UploadFile(string path, string basePath)
         {
             FileInfo fileInfo = new FileInfo(path);
 
-            string fileName = fileInfo.Name;
+            string fileName = ToRelativePath(path, basePath);
             long fileSize = fileInfo.Length;
 
             Stream stream = new FileStream(path, FileMode.Open, FileAccess.Read);
 
             UploadStream(stream, fileSize, fileName);
+
+            stream.Close();
+            stream.Dispose();
+
+            File.Delete(path);
         }
 
         internal void UploadStream(Stream stream, long length, string fileName)
         {
 
-            byte[] buffer = new byte[_bufferSize];
-            int offset = 0;
-            int bytesUploaded = 0;
+            byte[] buffer = new byte[_bufferSize]; 
+            int bytesRead;
 
-            while (bytesUploaded < length)
+            while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) > 0)
             {
-
-                int bytesRead = stream.Read(buffer, offset, _bufferSize);
-
                 if (bytesRead < _bufferSize)
                 {
                     buffer = buffer.Take(bytesRead).ToArray();
                 }
 
-                _gateway.Upload(fileName, length, buffer);
+                for (int i = 0; i < 3; i++)
+                {
 
-                bytesUploaded += bytesRead;
+                    try
+                    {
+                        _gateway.Upload(fileName, length, buffer);
 
+                        break;
+                    }
+                    catch
+                    {
+
+                    }
+
+                }
             }
+            
+        }
+
+        internal string ToRelativePath(string path, string basePath)
+        {
+            return path.Substring(basePath.Length + 1);
         }
     }
 }
