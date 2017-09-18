@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
-
-namespace OffsiteBackupClient.Gateways
+﻿namespace OffsiteBackupClient.Gateways
 {
     public interface IGateway
     {
