@@ -1,6 +1,7 @@
 ﻿using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OffsiteBackupClient.Gateways;
+using System.Text;
 
 namespace OffsiteBackupClient.Tests.Gateways
 {
@@ -14,12 +15,9 @@ namespace OffsiteBackupClient.Tests.Gateways
         {
             DropboxGateway gateway = new DropboxGateway(_accessToken);
 
-            for (int i = 0; i < 15; i++)
-            {
-                gateway.Upload("hello_world.txt", 150, 0, new byte[] {
-                    10, 20, 30, 40, 50, 60, 70, 80, 90, 100
-                });
-            }
+            byte[] bytes = Encoding.ASCII.GetBytes("Hello World");
+
+            gateway.Upload("hello_world.txt", bytes.Length, bytes);
         }
 
         [TestMethod, TestCategory("Integration")]

@@ -7,6 +7,6 @@ namespace OffsiteBackupClient.Gateways
 {
     public interface IGateway
     {
-        void Upload(string filename, int fileSize, int offset, byte[] bytes);
+        void Upload(string filename, long fileSize, byte[] bytes);
     }
 }

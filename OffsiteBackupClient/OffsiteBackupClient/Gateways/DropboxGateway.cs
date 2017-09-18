@@ -13,13 +13,13 @@ namespace OffsiteBackupClient.Gateways
         private string _accessToken;
 
         private Dictionary<string, string> _sessionIds = new Dictionary<string, string>();
-        private Dictionary<string, int> _bytesUploaded = new Dictionary<string, int>();
+        private Dictionary<string, long> _bytesUploaded = new Dictionary<string, long>();
 
         public DropboxGateway(string accessToken)
         {
             _accessToken = accessToken;
         }
-        public void Upload(string filename, int fileSize, int offset, byte[] bytes)
+        public void Upload(string filename, long fileSize, byte[] bytes)
         {
             string sessionId;
 
@@ -34,18 +34,20 @@ namespace OffsiteBackupClient.Gateways
                 sessionId = _sessionIds[filename];
             }
 
-            AppendSession(sessionId, filename, fileSize, bytes);
-
+ 
             if (!_bytesUploaded.ContainsKey(filename))
             {
-                _bytesUploaded.Add(filename, bytes.Length);
-            }
-            else
-            {
-                _bytesUploaded[filename] += bytes.Length;
+                _bytesUploaded.Add(filename, 0);
             }
 
-            int bytesUploaded = _bytesUploaded[filename];
+
+            long offset = _bytesUploaded[filename];
+
+            AppendSession(sessionId, filename, offset, bytes);
+
+            _bytesUploaded[filename] += bytes.Length;
+
+            long bytesUploaded = _bytesUploaded[filename];
 
             if (bytesUploaded == fileSize)
             {
@@ -53,27 +55,36 @@ namespace OffsiteBackupClient.Gateways
             }
         }
 
-        internal void AppendSession(string sessionId, string filename, int fileSize, byte[] bytes)
+        internal void AppendSession(string sessionId, string filename, long offset, byte[] bytes)
         {
             HttpClient client = new HttpClient();
 
-            client.DefaultRequestHeaders.TryAddWithoutValidation("Content-Type", "application/octet-stream");
-            client.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", $"Bearer {_accessToken}");
-            client.DefaultRequestHeaders.TryAddWithoutValidation("Dropbox-API-Arg", Newtonsoft.Json.JsonConvert.SerializeObject(new
+            client.DefaultRequestHeaders.Add("Authorization", $"Bearer {_accessToken}");
+            client.DefaultRequestHeaders.Add("Dropbox-API-Arg", Newtonsoft.Json.JsonConvert.SerializeObject(new
             {
                 cursor = new
                 {
                     session_id = sessionId,
-                    offset = fileSize
+                    offset = offset
                 },
                 close = false
             }));
 
-            HttpResponseMessage result = client.PostAsync("https://content.dropboxapi.com/2/files/upload_session/append_v2", new ByteArrayContent(bytes)).Result;
+            HttpContent content = new ByteArrayContent(bytes);
+            content.Headers.Add("Content-Type", "application/octet-stream");
+
+            HttpResponseMessage result = client.PostAsync("https://content.dropboxapi.com/2/files/upload_session/append_v2", content).Result;
+
+            if (!result.IsSuccessStatusCode)
+            {
+                string errorMessage = result.Content.ReadAsStringAsync().Result;
+
+                throw new Exception(errorMessage);
+            }
 
         }
 
-        internal void EndSession(string sessionId, string filename, int fileSize)
+        internal void EndSession(string sessionId, string filename, long fileSize)
         {
             RestClient client = new RestClient("https://content.dropboxapi.com");
 
@@ -90,7 +101,7 @@ namespace OffsiteBackupClient.Gateways
                 },
                 commit = new
                 {
-                    path = $"{filename}",
+                    path = $"/{filename}",
                     mode = "add",
                     autorename = true,
                     mute = false
@@ -101,7 +112,8 @@ namespace OffsiteBackupClient.Gateways
 
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
             {
-                throw new Exception();
+                string errorMessage = response.Content;
+                throw new Exception(errorMessage);
             }
 
         }
@@ -120,6 +132,12 @@ namespace OffsiteBackupClient.Gateways
             }));
 
             IRestResponse<dynamic> response = client.Execute<dynamic>(request);
+
+            if (response.StatusCode != System.Net.HttpStatusCode.OK)
+            {
+                string errorMessage = response.Content;
+                throw new Exception(errorMessage);
+            }
 
             return response.Data["session_id"];
         }
