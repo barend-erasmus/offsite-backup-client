@@ -1,4 +1,5 @@
-﻿using System.ServiceProcess;
+﻿using log4net.Config;
+using System.ServiceProcess;
 
 namespace OffsiteBackupService
 {
@@ -9,6 +10,8 @@ namespace OffsiteBackupService
         /// </summary>
         static void Main()
         {
+            XmlConfigurator.Configure();
+
             ServiceBase[] ServicesToRun;
             ServicesToRun = new ServiceBase[]
             {

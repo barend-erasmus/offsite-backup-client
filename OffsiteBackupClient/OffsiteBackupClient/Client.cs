@@ -1,4 +1,5 @@
-﻿using OffsiteBackupClient.Gateways;
+﻿using log4net;
+using OffsiteBackupClient.Gateways;
 using System.IO;
 using System.Linq;
 
@@ -9,6 +10,7 @@ namespace OffsiteBackupClient
 
         private readonly IGateway _gateway = null;
         private readonly int _bufferSize = 0;
+        private readonly ILog _log = LogManager.GetLogger(typeof(Client));
 
         public Client(IGateway gateway, int bufferSize)
         {
@@ -18,6 +20,8 @@ namespace OffsiteBackupClient
 
         public void UploadDirectory(string path, string basePath)
         {
+            _log.Info($"UploadDirectory(\"{path}\", \"{basePath}\")");
+
             if (string.IsNullOrWhiteSpace(basePath))
             {
                 basePath = path;
@@ -36,6 +40,8 @@ namespace OffsiteBackupClient
 
         internal void UploadFile(string path, string basePath)
         {
+            _log.Info($"UploadFile(\"{path}\", \"{basePath}\")");
+
             FileInfo fileInfo = new FileInfo(path);
 
             string fileName = ToRelativePath(path, basePath);
@@ -53,6 +59,8 @@ namespace OffsiteBackupClient
 
         internal void UploadStream(Stream stream, long length, string fileName)
         {
+
+            _log.Info($"UploadStream(stream, {length}, \"{fileName}\")");
 
             byte[] buffer = new byte[_bufferSize]; 
             int bytesRead;

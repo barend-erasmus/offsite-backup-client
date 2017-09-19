@@ -2,22 +2,25 @@
 using RestSharp;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace OffsiteBackupClient.Gateways
 {
-    public class DropboxGateway : IGateway
+    public class SimpleCloudStorageGateway
     {
-        private readonly ILog _log = LogManager.GetLogger(typeof(DropboxGateway));
+        private readonly ILog _log = LogManager.GetLogger(typeof(SimpleCloudStorageGateway));
 
-        private string _accessToken;
+        private string _profileId;
 
         private Dictionary<string, string> _sessionIds = new Dictionary<string, string>();
         private Dictionary<string, long> _bytesUploaded = new Dictionary<string, long>();
 
-        public DropboxGateway(string accessToken)
+        public SimpleCloudStorageGateway(string profileId)
         {
-            _accessToken = accessToken;
+            _profileId = profileId;
         }
 
         public void Upload(string fileName, long fileSize, byte[] bytes)
@@ -28,7 +31,7 @@ namespace OffsiteBackupClient.Gateways
 
             if (!_sessionIds.ContainsKey(fileName))
             {
-                sessionId = GetSessionId();
+                sessionId = GetSessionId(fileName, fileSize);
 
                 _sessionIds.Add(fileName, sessionId);
             }
@@ -36,7 +39,7 @@ namespace OffsiteBackupClient.Gateways
             {
                 sessionId = _sessionIds[fileName];
             }
- 
+
             if (!_bytesUploaded.ContainsKey(fileName))
             {
                 _bytesUploaded.Add(fileName, 0);
@@ -62,21 +65,12 @@ namespace OffsiteBackupClient.Gateways
 
             HttpClient client = new HttpClient();
 
-            client.DefaultRequestHeaders.Add("Authorization", $"Bearer {_accessToken}");
-            client.DefaultRequestHeaders.Add("Dropbox-API-Arg", Newtonsoft.Json.JsonConvert.SerializeObject(new
-            {
-                cursor = new
-                {
-                    session_id = sessionId,
-                    offset = offset
-                },
-                close = false
-            }));
+            client.DefaultRequestHeaders.Add("Authorization", sessionId);
 
             HttpContent content = new ByteArrayContent(bytes);
             content.Headers.Add("Content-Type", "application/octet-stream");
 
-            HttpResponseMessage result = client.PostAsync("https://content.dropboxapi.com/2/files/upload_session/append_v2", content).Result;
+            HttpResponseMessage result = client.PostAsync("http://localhost:3000/files/append", content).Result;
 
             if (!result.IsSuccessStatusCode)
             {
@@ -91,27 +85,12 @@ namespace OffsiteBackupClient.Gateways
         {
             _log.Info($"EndSession(\"{sessionId}\", \"{fileName}\", {fileSize})");
 
-            RestClient client = new RestClient("https://content.dropboxapi.com");
+            RestClient client = new RestClient("http://localhost:3000");
 
-            RestRequest request = new RestRequest("2/files/upload_session/finish", Method.POST);
+            RestRequest request = new RestRequest("files/finish", Method.POST);
 
             request.AddHeader("Content-Type", "application/octet-stream");
-            request.AddHeader("Authorization", $"Bearer {_accessToken}");
-            request.AddHeader("Dropbox-API-Arg", Newtonsoft.Json.JsonConvert.SerializeObject(new
-            {
-                cursor = new
-                {
-                    session_id = sessionId,
-                    offset = fileSize
-                },
-                commit = new
-                {
-                    path = $"/{ToLinuxPath(fileName)}",
-                    mode = "add",
-                    autorename = true,
-                    mute = false
-                }
-            }));
+            request.AddHeader("Authorization", sessionId);
 
             IRestResponse<dynamic> response = client.Execute<dynamic>(request);
 
@@ -123,20 +102,23 @@ namespace OffsiteBackupClient.Gateways
 
         }
 
-        internal string GetSessionId()
+        internal string GetSessionId(string fileName, long fileSize)
         {
-            _log.Info($"GetSessionId()");
+            _log.Info($"GetSessionId(\"{fileName}\", {fileSize})");
 
-            RestClient client = new RestClient("https://content.dropboxapi.com");
+            RestClient client = new RestClient("http://localhost:3000");
 
-            RestRequest request = new RestRequest("2/files/upload_session/start", Method.POST);
+            RestRequest request = new RestRequest("files/create", Method.POST);
 
-            request.AddHeader("Content-Type", "application/octet-stream");
-            request.AddHeader("Authorization", $"Bearer {_accessToken}");
-            request.AddHeader("Dropbox-API-Arg", Newtonsoft.Json.JsonConvert.SerializeObject(new
+            request.AddHeader("Content-Type", "application/json");
+
+            request.RequestFormat = DataFormat.Json;
+            request.AddBody(new
             {
-                close = false
-            }));
+                fileName = fileName,
+                fileSize = fileSize,
+                profileId = _profileId,
+            });
 
             IRestResponse<dynamic> response = client.Execute<dynamic>(request);
 
@@ -146,7 +128,7 @@ namespace OffsiteBackupClient.Gateways
                 throw new Exception(errorMessage);
             }
 
-            return response.Data["session_id"];
+            return response.Data;
         }
 
         internal string ToLinuxPath(string path)
