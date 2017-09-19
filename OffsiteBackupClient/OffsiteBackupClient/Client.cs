@@ -1,5 +1,6 @@
 ﻿using log4net;
 using OffsiteBackupClient.Gateways;
+using System;
 using System.IO;
 using System.Linq;
 
@@ -81,9 +82,9 @@ namespace OffsiteBackupClient
 
                         break;
                     }
-                    catch
+                    catch(Exception ex)
                     {
-
+                        _log.Error(ex);
                     }
 
                 }

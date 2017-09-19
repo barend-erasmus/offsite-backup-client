@@ -10,7 +10,7 @@ namespace OffsiteBackupClient.Gateways
     {
         private readonly ILog _log = LogManager.GetLogger(typeof(DropboxGateway));
 
-        private string _accessToken;
+        private readonly string _accessToken;
 
         private Dictionary<string, string> _sessionIds = new Dictionary<string, string>();
         private Dictionary<string, long> _bytesUploaded = new Dictionary<string, long>();

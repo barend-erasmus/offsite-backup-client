@@ -2,25 +2,24 @@
 using RestSharp;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace OffsiteBackupClient.Gateways
 {
-    public class SimpleCloudStorageGateway
+    public class SimpleCloudStorageGateway: IGateway
     {
         private readonly ILog _log = LogManager.GetLogger(typeof(SimpleCloudStorageGateway));
 
-        private string _profileId;
+        private readonly string _profileId;
+        private readonly string _uri;
 
         private Dictionary<string, string> _sessionIds = new Dictionary<string, string>();
         private Dictionary<string, long> _bytesUploaded = new Dictionary<string, long>();
 
-        public SimpleCloudStorageGateway(string profileId)
+        public SimpleCloudStorageGateway(string profileId, string uri)
         {
             _profileId = profileId;
+            _uri = uri;
         }
 
         public void Upload(string fileName, long fileSize, byte[] bytes)
@@ -70,7 +69,7 @@ namespace OffsiteBackupClient.Gateways
             HttpContent content = new ByteArrayContent(bytes);
             content.Headers.Add("Content-Type", "application/octet-stream");
 
-            HttpResponseMessage result = client.PostAsync("http://localhost:3000/files/append", content).Result;
+            HttpResponseMessage result = client.PostAsync($"{_uri}/files/append", content).Result;
 
             if (!result.IsSuccessStatusCode)
             {
@@ -85,7 +84,7 @@ namespace OffsiteBackupClient.Gateways
         {
             _log.Info($"EndSession(\"{sessionId}\", \"{fileName}\", {fileSize})");
 
-            RestClient client = new RestClient("http://localhost:3000");
+            RestClient client = new RestClient(_uri);
 
             RestRequest request = new RestRequest("files/finish", Method.POST);
 
@@ -106,9 +105,9 @@ namespace OffsiteBackupClient.Gateways
         {
             _log.Info($"GetSessionId(\"{fileName}\", {fileSize})");
 
-            RestClient client = new RestClient("http://localhost:3000");
+            RestClient client = new RestClient(_uri);
 
-            RestRequest request = new RestRequest("files/create", Method.POST);
+            RestRequest request = new RestRequest("files/start", Method.POST);
 
             request.AddHeader("Content-Type", "application/json");
 

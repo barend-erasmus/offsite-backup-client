@@ -3,7 +3,6 @@ using OffsiteBackupClient;
 using OffsiteBackupClient.Gateways;
 using System;
 using System.Configuration;
-using System.Reflection;
 using System.ServiceProcess;
 
 namespace OffsiteBackupService
@@ -34,12 +33,31 @@ namespace OffsiteBackupService
 
         private void Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
-            IGateway gateway = new DropboxGateway(ConfigurationManager.AppSettings["DropboxAccessToken"]);
+            _timer.Stop();
+
+            _log.Info("Elapsed()");
+
+            string gatewayType = ConfigurationManager.AppSettings["GatewayType"];
+
+            IGateway gateway = null;
+
+            if (gatewayType.Equals("Dropbox"))
+            {
+                gateway = new DropboxGateway(ConfigurationManager.AppSettings["DropboxAccessToken"]);
+            }
+            else if (gatewayType.Equals("SimpleCloudStorage"))
+            {
+                gateway = new SimpleCloudStorageGateway(ConfigurationManager.AppSettings["SimpleCloudStorageProfileId"], ConfigurationManager.AppSettings["SimpleCloudStorageUri"]);
+            }
+            else
+            {
+                throw new Exception("Invalid Gateway Type");
+            }
+
             Client client = new Client(gateway, Convert.ToInt32(ConfigurationManager.AppSettings["BufferSize"]));
 
             client.UploadDirectory(ConfigurationManager.AppSettings["Path"], null);
 
-            _timer.Stop();
             _timer.Start();
 
         }
