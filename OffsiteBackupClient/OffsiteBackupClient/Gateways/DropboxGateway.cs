@@ -80,6 +80,8 @@ namespace OffsiteBackupClient.Gateways
 
             HttpResponseMessage result = client.PostAsync("https://content.dropboxapi.com/2/files/upload_session/append_v2", content).Result;
 
+            _log.Info($"URI: POST https://content.dropboxapi.com/2/files/upload_session/append_v2 -> {result.StatusCode}");
+
             if (!result.IsSuccessStatusCode)
             {
                 string errorMessage = result.Content.ReadAsStringAsync().Result;
@@ -117,6 +119,8 @@ namespace OffsiteBackupClient.Gateways
 
             IRestResponse<dynamic> response = client.Execute<dynamic>(request);
 
+            _log.Info($"URI: POST https://content.dropboxapi.com/2/files/upload_session/finish -> {response.StatusCode}");
+
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
             {
                 string errorMessage = response.Content;
@@ -141,6 +145,8 @@ namespace OffsiteBackupClient.Gateways
             }));
 
             IRestResponse<dynamic> response = client.Execute<dynamic>(request);
+
+            _log.Info($"URI: POST https://content.dropboxapi.com/2/files/upload_session/start -> {response.StatusCode}");
 
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
             {

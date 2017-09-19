@@ -73,6 +73,8 @@ namespace OffsiteBackupClient.Gateways
 
             HttpResponseMessage result = client.PostAsync($"{_uri}/files/append", content).Result;
 
+            _log.Info($"URI: POST {_uri}/files/append -> {result.StatusCode}");
+
             if (!result.IsSuccessStatusCode)
             {
                 string errorMessage = result.Content.ReadAsStringAsync().Result;
@@ -94,6 +96,8 @@ namespace OffsiteBackupClient.Gateways
             request.AddHeader("Authorization", sessionId);
 
             IRestResponse<dynamic> response = client.Execute<dynamic>(request);
+
+            _log.Info($"URI: POST {_uri}/files/finish -> {response.StatusCode}");
 
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
             {
@@ -122,6 +126,8 @@ namespace OffsiteBackupClient.Gateways
             });
 
             IRestResponse<dynamic> response = client.Execute<dynamic>(request);
+
+            _log.Info($"URI: POST {_uri}/files/start -> {response.StatusCode}");
 
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
             {

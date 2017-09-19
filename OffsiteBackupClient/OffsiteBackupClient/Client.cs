@@ -64,12 +64,12 @@ namespace OffsiteBackupClient
             stream.Close();
             stream.Dispose();
 
+            _log.Info($"File.Delete(\"{path}\")");
             File.Delete(path);
         }
 
         internal void UploadStream(Stream stream, long length, string fileName)
         {
-
             _log.Info($"UploadStream(stream, {length}, \"{fileName}\")");
 
             byte[] bytes = new byte[_bufferSize];
