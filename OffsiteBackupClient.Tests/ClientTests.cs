@@ -34,7 +34,7 @@ namespace OffsiteBackupClient.Tests
 
             int bufferSize = 240;
 
-            Client client = new Client(null, bufferSize);
+            Client client = new Client((IGateway)null, bufferSize);
 
             string path = client.ToRelativePath(@"C:\Program Files (x86)\Google\Drive", @"C:\Program Files (x86)");
 

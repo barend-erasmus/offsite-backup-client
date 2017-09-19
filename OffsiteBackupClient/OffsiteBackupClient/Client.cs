@@ -9,13 +9,22 @@ namespace OffsiteBackupClient
     public class Client
     {
 
-        private readonly IGateway _gateway = null;
+        private readonly IGateway[] _gateways = null;
         private readonly int _bufferSize = 0;
         private readonly ILog _log = LogManager.GetLogger(typeof(Client));
 
         public Client(IGateway gateway, int bufferSize)
         {
-            _gateway = gateway;
+            _gateways = new IGateway[] {
+                gateway
+             };
+
+            _bufferSize = bufferSize;
+        }
+
+        public Client(IGateway[] gateways, int bufferSize)
+        {
+            _gateways = gateways;
             _bufferSize = bufferSize;
         }
 
@@ -63,33 +72,41 @@ namespace OffsiteBackupClient
 
             _log.Info($"UploadStream(stream, {length}, \"{fileName}\")");
 
-            byte[] buffer = new byte[_bufferSize]; 
+            byte[] bytes = new byte[_bufferSize];
             int bytesRead;
 
-            while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) > 0)
+            while ((bytesRead = stream.Read(bytes, 0, bytes.Length)) > 0)
             {
                 if (bytesRead < _bufferSize)
                 {
-                    buffer = buffer.Take(bytesRead).ToArray();
+                    bytes = bytes.Take(bytesRead).ToArray();
                 }
 
+                UploadBytes(fileName, length, bytes);
+            }
+
+        }
+
+        internal void UploadBytes(string fileName, long length, byte[] bytes)
+        {
+            foreach (IGateway gateway in _gateways)
+            {
                 for (int i = 0; i < 3; i++)
                 {
 
                     try
                     {
-                        _gateway.Upload(fileName, length, buffer);
+                        gateway.Upload(fileName, length, bytes);
 
                         break;
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
                         _log.Error(ex);
                     }
 
                 }
             }
-            
         }
 
         internal string ToRelativePath(string path, string basePath)

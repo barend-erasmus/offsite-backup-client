@@ -2,7 +2,9 @@
 using OffsiteBackupClient;
 using OffsiteBackupClient.Gateways;
 using System;
+using System.Collections.Generic;
 using System.Configuration;
+using System.Linq;
 using System.ServiceProcess;
 
 namespace OffsiteBackupService
@@ -37,24 +39,21 @@ namespace OffsiteBackupService
 
             _log.Info("Elapsed()");
 
-            string gatewayType = ConfigurationManager.AppSettings["GatewayType"];
+            string[] gatewayTypes = ConfigurationManager.AppSettings["GatewayTypes"].Split(',');
 
-            IGateway gateway = null;
+            IList<IGateway> gateways = new List<IGateway>();
 
-            if (gatewayType.Equals("Dropbox"))
+            if (gatewayTypes.Contains("Dropbox"))
             {
-                gateway = new DropboxGateway(ConfigurationManager.AppSettings["DropboxAccessToken"]);
-            }
-            else if (gatewayType.Equals("SimpleCloudStorage"))
-            {
-                gateway = new SimpleCloudStorageGateway(ConfigurationManager.AppSettings["SimpleCloudStorageProfileId"], ConfigurationManager.AppSettings["SimpleCloudStorageUri"]);
-            }
-            else
-            {
-                throw new Exception("Invalid Gateway Type");
+                gateways.Add(new DropboxGateway(ConfigurationManager.AppSettings["DropboxAccessToken"]));
             }
 
-            Client client = new Client(gateway, Convert.ToInt32(ConfigurationManager.AppSettings["BufferSize"]));
+            if (gatewayTypes.Contains("SimpleCloudStorage"))
+            {
+                gateways.Add(new SimpleCloudStorageGateway(ConfigurationManager.AppSettings["SimpleCloudStorageProfileId"], ConfigurationManager.AppSettings["SimpleCloudStorageUri"]));
+            }
+
+            Client client = new Client(gateways.ToArray(), Convert.ToInt32(ConfigurationManager.AppSettings["BufferSize"]));
 
             client.UploadDirectory(ConfigurationManager.AppSettings["Path"], null);
 

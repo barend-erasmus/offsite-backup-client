@@ -24,6 +24,8 @@ namespace OffsiteBackupClient.Gateways
 
         public void Upload(string fileName, long fileSize, byte[] bytes)
         {
+            fileName = ToLinuxPath(fileName);
+
             _log.Info($"Upload(\"{fileName}\", {fileSize}, bytes)");
 
             string sessionId;
